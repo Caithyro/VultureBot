@@ -2,6 +2,8 @@ import discord
 import aiohttp
 import asyncio
 import os
+import time
+from datetime import datetime, timezone
 from flask import Flask
 from threading import Thread
 from datetime import datetime, timedelta, timezone
@@ -14,10 +16,13 @@ intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 
+CYCLE_REAL_SECONDS = 3*60*60
+GAME_HOURS = 24
+
 cache_data = None
 cache_time = None
 
-TRIGGERS = [
+VULTURE_TRIGGERS = [
     "де той піздюк",
     "де піздюк",
     "де vulture",
@@ -26,6 +31,13 @@ TRIGGERS = [
     "де vulture?",
     "where is vulture",
     "where is vulture?",
+]
+
+TIME_TRIGGERS = [
+    "кіко время",
+    "котра година",
+    "котра гадина",
+    "скільки часу"
 ]
 
 app = Flask('')
@@ -39,6 +51,14 @@ def run_flask():
 
 Thread(target=run_flask).start()
 
+def region_time(offset):
+    now = datetime.now(timezone.utc).timestamp()
+    cycle_pos = now % CYCLE_REAL_SECONDS
+    game_hours = (cycle_pos / CYCLE_REAL_SECONDS) * GAME_HOURS
+    hour = int((game_hours + offset) % 24)
+    minute = int((game_hours % 1) * 60)
+    return f"{hour:02}:{minute:02}"
+
 # BOT FUNCTIONS
 async def get_vulture():
     global cache_data, cache_time
@@ -51,6 +71,25 @@ async def get_vulture():
     cache_data = data
     cache_time = datetime.utcnow()
     return data
+
+async def send_time(channel):
+    ts = int(time.time())
+    url = f"https://gzwtime.com/data/regions.json?ts={ts}"
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as r:
+            data = await r.json()
+
+    regions = {name: offset for name, offset in data}
+
+    east = region_time(regions["Europe East"])
+    west = region_time(regions["Europe West"])
+
+    embed = discord.Embed(title="🕒 GZW Time", color=0x3498db)
+    embed.add_field(name="🌅 Europe East", value=f"**{east}**", inline=True)
+    embed.add_field(name="🌄 Europe West", value=f"**{west}**", inline=True)
+
+    await channel.send(embed=embed)
 
 async def send_vulture_timer(channel):
     data = await get_vulture()
@@ -120,7 +159,9 @@ async def on_message(message):
     if message.author == client.user:
         return
     msg = message.content.lower()
-    if any(x in msg for x in TRIGGERS):
+    if any(x in msg for x in VULTURE_TRIGGERS):
         await send_vulture_timer(message.channel)
+    if any(x in msg for x in TIME_TRIGGERS):
+        await send_time(message.channel)
 
 client.run(TOKEN)
