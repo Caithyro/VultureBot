@@ -85,9 +85,22 @@ async def send_time(channel):
     east = region_time(regions["Europe East"])
     west = region_time(regions["Europe West"])
 
-    embed = discord.Embed(title="🕒 GZW Time", color=0x3498db)
-    embed.add_field(name="🌅 Europe East", value=f"**{east}**", inline=True)
-    embed.add_field(name="🌄 Europe West", value=f"**{west}**", inline=True)
+    east_name = ""
+    west_name = ""
+
+    if 5 <= east < 21:
+        east_name = "☀️ Europe East"
+    else:
+        east_name = "🌙Europe East"
+
+    if 5 <= west < 21:
+        west_name = "☀️Europe West"
+    else:
+        west_name = "🌙Europe West"
+
+    embed = discord.Embed(title="🕒 GZW Server Time", color=0x3498db)
+    embed.add_field(name=east_name, value=f"**{east}**", inline=True)
+    embed.add_field(name=west_name, value=f"**{west}**", inline=True)
 
     await channel.send(embed=embed)
 
