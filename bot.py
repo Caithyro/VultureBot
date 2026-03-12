@@ -37,7 +37,8 @@ TIME_TRIGGERS = [
     "кіко время",
     "котра година",
     "котра гадина",
-    "скільки часу"
+    "скільки часу",
+    "what time is it"
 ]
 
 app = Flask('')
@@ -58,6 +59,13 @@ def region_time(offset):
     hour = int((game_hours + offset) % 24)
     minute = int((game_hours % 1) * 60)
     return f"{hour:02}:{minute:02}"
+
+def day_or_night(time_str: str) -> str:
+    hour = int(time_str.split(":")[0])
+    if 5 <= hour < 21:
+        return "☀️"
+    else:
+        return "🌙"
 
 # BOT FUNCTIONS
 async def get_vulture():
@@ -85,22 +93,12 @@ async def send_time(channel):
     east = region_time(regions["Europe East"])
     west = region_time(regions["Europe West"])
 
-    east_name = ""
-    west_name = ""
-
-    if 5 <= east < 21:
-        east_name = "☀️ Europe East"
-    else:
-        east_name = "🌙Europe East"
-
-    if 5 <= west < 21:
-        west_name = "☀️Europe West"
-    else:
-        west_name = "🌙Europe West"
+    east_name = "Europe East"
+    west_name = "Europe West"
 
     embed = discord.Embed(title="🕒 GZW Server Time", color=0x3498db)
-    embed.add_field(name=east_name, value=f"**{east}**", inline=True)
-    embed.add_field(name=west_name, value=f"**{west}**", inline=True)
+    embed.add_field(name=day_or_night(east) + " " + east_name, value=f"**{east}**", inline=True)
+    embed.add_field(name=day_or_night(west) + " " + west_name, value=f"**{west}**", inline=True)
 
     await channel.send(embed=embed)
 
